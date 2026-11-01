@@ -44,9 +44,21 @@ python -m venv .venv
 - 属性/关键词抽取 → MallX 搜索 → 去重卡片（名称/价格/店铺/跳详情）；
 - Web 演示页（拖拽上传、识别标签、商品网格）。
 
+## 以图搜同款（CLIP）
+
+```bash
+# 索引一张商品图
+curl -X POST http://127.0.0.1:8020/api/visual/index \
+  -F "file=@phone.jpg" -F "label=iphone" -F "product_id=1"
+# 用另一张图搜相似
+curl -X POST http://127.0.0.1:8020/api/visual/search -F "file=@query.jpg"
+```
+
+本地 `Qdrant/clip-ViT-B-32-vision`，向量存 SQLite；冒烟测试会验证同图相似度 > 0.9。
+
 ## 路线图
 
-- [ ] CLIP 图像相似检索（本地 fastembed，按图搜同款）
+- [x] CLIP 图像相似检索（fastembed `clip-ViT-B-32`，512 维，`/api/visual/index`、`/api/visual/search`）
 - [ ] 多图/视频输入；拍照上传（移动端）
 - [ ] 属性编辑（用户改“黑色”为“白色”再搜）
 - [ ] 与 MallX 前端集成（详情页“以图搜同款”入口）

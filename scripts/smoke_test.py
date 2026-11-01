@@ -32,5 +32,14 @@ with httpx.Client(timeout=30) as c:
     check("products found", j.get("productCount", 0) >= 1, f"count={j.get('productCount')}")
     check("product has name", bool((j.get("products") or [{}])[0].get("name")))
 
+    vi = c.post(f"{BASE}/api/visual/index", files={"file": ("smoke.png", PNG, "image/png")},
+                params={"label": "smoke-a"})
+    check("visual index", vi.status_code == 200 and vi.json().get("dim", 0) > 0, vi.text[:80])
+    vs = c.post(f"{BASE}/api/visual/search", files={"file": ("smoke-q.png", PNG, "image/png")},
+                params={"top_k": 3})
+    matches = vs.json().get("matches") or []
+    check("visual search", vs.status_code == 200 and matches and matches[0]["score"] > 0.9,
+          f"score={matches[0]['score'] if matches else None}")
+
 print(f"RESULT {ok}/{ok + len(fail)}", "fail:", fail)
 sys.exit(0 if not fail else 1)

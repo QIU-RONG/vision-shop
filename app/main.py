@@ -1,11 +1,12 @@
 """多模态商品助手（Day 1）：拍照/上传图片 → 视觉理解 → 搜 MallX 商品。"""
+import json
 import os
 import uuid
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
-from . import mallx, vision
+from . import clip, mallx, store, vision
 
 app = FastAPI(title="VisionShop", version="0.1.0")
 
@@ -41,6 +42,38 @@ async def analyze(file: UploadFile = File(...)):
     products = mallx.search(info.get("keywords") or [])
     return {"filename": file.filename, "image": f"/uploads/{os.path.basename(path)}",
             "analysis": info, "products": products, "productCount": len(products)}
+
+
+@app.post("/api/visual/index")
+async def visual_index(file: UploadFile = File(...), label: str = "", product_id: int | None = None):
+    raw = await file.read()
+    if len(raw) > MAX_BYTES:
+        raise HTTPException(status_code=400, detail="图片不能超过 5MB")
+    ext = (os.path.splitext(file.filename or "")[1] or ".jpg")[:6]
+    path = os.path.join(UPLOAD_DIR, "idx-" + uuid.uuid4().hex + ext)
+    with open(path, "wb") as f:
+        f.write(raw)
+    vec = clip.embed_image(path)
+    rid = store.add(label or (file.filename or ""), product_id, f"/uploads/{os.path.basename(path)}", vec)
+    return {"id": rid, "dim": len(vec), "label": label, "indexed": store.count()}
+
+
+@app.post("/api/visual/search")
+async def visual_search(file: UploadFile = File(...), top_k: int = 3):
+    raw = await file.read()
+    if len(raw) > MAX_BYTES:
+        raise HTTPException(status_code=400, detail="图片不能超过 5MB")
+    ext = (os.path.splitext(file.filename or "")[1] or ".jpg")[:6]
+    path = os.path.join(UPLOAD_DIR, "q-" + uuid.uuid4().hex + ext)
+    with open(path, "wb") as f:
+        f.write(raw)
+    qv = clip.embed_image(path)
+    rows = store.all_rows()
+    scored = [{"id": r["id"], "label": r["label"], "productId": r["product_id"],
+               "image": r["path"], "score": round(clip.cosine(qv, json.loads(r["embedding"])), 4)}
+              for r in rows]
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return {"indexed": store.count(), "matches": scored[:max(1, min(top_k, 10))]}
 
 
 @app.get("/uploads/{name}")
