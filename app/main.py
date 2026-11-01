@@ -73,7 +73,11 @@ async def visual_search(file: UploadFile = File(...), top_k: int = 3):
                "image": r["path"], "score": round(clip.cosine(qv, json.loads(r["embedding"])), 4)}
               for r in rows]
     scored.sort(key=lambda x: x["score"], reverse=True)
-    return {"indexed": store.count(), "matches": scored[:max(1, min(top_k, 10))]}
+    matches = scored[:max(1, min(top_k, 10))]
+    for m in matches:
+        if m.get("productId"):
+            m["product"] = mallx.product(int(m["productId"]))
+    return {"indexed": store.count(), "matches": matches}
 
 
 @app.get("/uploads/{name}")

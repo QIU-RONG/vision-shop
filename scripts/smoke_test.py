@@ -41,5 +41,13 @@ with httpx.Client(timeout=30) as c:
     check("visual search", vs.status_code == 200 and matches and matches[0]["score"] > 0.9,
           f"score={matches[0]['score'] if matches else None}")
 
+    vi2 = c.post(f"{BASE}/api/visual/index", files={"file": ("p.png", PNG, "image/png")},
+                 params={"label": "product-1", "product_id": 1})
+    vs2 = c.post(f"{BASE}/api/visual/search", files={"file": ("p-q.png", PNG, "image/png")},
+                 params={"top_k": 5})
+    enriched = [m for m in vs2.json().get("matches") or [] if m.get("product")]
+    check("visual product", bool(enriched) and enriched[0]["product"].get("name"),
+          str(enriched[0]["product"].get("name")) if enriched else "no product")
+
 print(f"RESULT {ok}/{ok + len(fail)}", "fail:", fail)
 sys.exit(0 if not fail else 1)

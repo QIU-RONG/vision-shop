@@ -35,6 +35,19 @@
   </div>
   <div id="analysis"></div>
   <div id="products"></div>
+
+  <h3>以图搜同款（CLIP）</h3>
+  <div class="drop" id="vdrop">点击选择查询图，然后搜相似 / 加入索引
+    <input type="file" id="vfile" accept="image/*" hidden />
+    <div id="vpreview"></div>
+  </div>
+  <div class="row" style="display:flex;gap:8px;margin-top:10px;align-items:center">
+    <input id="vlabel" placeholder="索引标签（可选）" />
+    <input id="vpid" placeholder="关联商品 id（可选）" style="width:160px" />
+    <button class="tag" style="cursor:pointer" onclick="vindex()">加入索引</button>
+    <button class="tag" style="cursor:pointer" onclick="vsearch()">搜相似</button>
+  </div>
+  <div id="vresults"></div>
 </main>
 <script>
 const drop = document.getElementById('drop');
@@ -74,6 +87,40 @@ async function upload(file) {
           <div class="shop">${p.shopName || ''}</div>
         </div>
       </a>`).join('') + '</div>';
+}
+const vdrop = document.getElementById('vdrop');
+const vfile = document.getElementById('vfile');
+const vpreview = document.getElementById('vpreview');
+vdrop.onclick = () => vfile.click();
+vfile.onchange = () => { if (vfile.files[0]) vpreview.innerHTML = `<img src="${URL.createObjectURL(vfile.files[0])}" />`; };
+async function vsearch() {
+  if (!vfile.files[0]) return alert('先选图');
+  const fd = new FormData(); fd.append('file', vfile.files[0]);
+  const r = await fetch('/api/visual/search', { method: 'POST', body: fd });
+  const j = await r.json();
+  document.getElementById('vresults').innerHTML = '<h3>相似结果</h3><div class="grid">' +
+    (j.matches || []).map((m) => `
+      <div class="card">
+        <div class="ph"><img src="${m.image}" style="width:100%;height:100%;object-fit:cover" /></div>
+        <div class="body">
+          <div class="name">${m.product ? m.product.name : (m.label || '未关联商品')}</div>
+          <div class="price">${m.product && m.product.price != null ? '¥' + m.product.price : ''}</div>
+          <div class="shop">相似度 ${(m.score * 100).toFixed(1)}%</div>
+        </div>
+      </div>`).join('') + '</div>';
+}
+async function vindex() {
+  if (!vfile.files[0]) return alert('先选图');
+  const fd = new FormData(); fd.append('file', vfile.files[0]);
+  const label = document.getElementById('vlabel').value.trim();
+  const pid = document.getElementById('vpid').value.trim();
+  const qs = new URLSearchParams();
+  if (label) qs.set('label', label);
+  if (pid) qs.set('product_id', pid);
+  const r = await fetch('/api/visual/index?' + qs.toString(), { method: 'POST', body: fd });
+  if (!r.ok) return alert('索引失败：' + r.status);
+  const j = await r.json();
+  alert('已索引，当前共 ' + j.indexed + ' 张');
 }
 </script>
 </body>

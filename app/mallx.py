@@ -31,3 +31,21 @@ def search(keywords: list[str], size: int = 6) -> list[dict]:
             if len(out) >= size:
                 return out
     return out
+
+
+def product(pid: int) -> dict | None:
+    """按 id 取 MallX 商品（用于把视觉相似结果变成商品卡片）。"""
+    try:
+        with httpx.Client(timeout=10) as c:
+            r = c.get(f"{BASE}/api/products/{pid}")
+            if r.status_code != 200:
+                return None
+            d = r.json().get("data") or {}
+            price = d.get("minPrice") or d.get("price")
+            if price is None and d.get("skus"):
+                price = d["skus"][0].get("price")
+            return {"id": d.get("id", pid), "name": d.get("name"),
+                    "price": price, "image": d.get("mainImage"),
+                    "shopName": d.get("shopName")}
+    except Exception:  # noqa: BLE001
+        return None

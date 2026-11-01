@@ -42,6 +42,7 @@ python -m venv .venv
 - 图片上传校验（类型/5MB）、落盘、静态回显；
 - VLM 可插拔：OpenAI 兼容 `image_url` base64；无 key 自动 mock（离线可跑）；
 - 属性/关键词抽取 → MallX 搜索 → 去重卡片（名称/价格/店铺/跳详情）；
+- CLIP 相似结果按 `product_id` 回查 MallX 商品并渲染卡片（相似度 + 名称/价格）；
 - Web 演示页（拖拽上传、识别标签、商品网格）。
 
 ## 以图搜同款（CLIP）
@@ -62,4 +63,5 @@ curl -X POST http://127.0.0.1:8020/api/visual/search -F "file=@query.jpg"
 - [ ] 多图/视频输入；拍照上传（移动端）
 - [ ] 属性编辑（用户改“黑色”为“白色”再搜）
 - [ ] 与 MallX 前端集成（详情页“以图搜同款”入口）
+- [x] CLIP 结果关联商品卡片（按 product_id 回查 MallX）
 - [ ] 真实视觉模型端到端验证（需要 key）
