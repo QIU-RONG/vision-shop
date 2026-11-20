@@ -1,0 +1,21 @@
+services:
+  vision-shop:
+    build: .
+    image: vision-shop:local
+    ports:
+      - "8020:8020"
+    environment:
+      MALLX_BASE: ${MALLX_BASE:-http://host.docker.internal:8081}
+      VISION_API_KEY: ${VISION_API_KEY:-}
+      VISION_BASE_URL: ${VISION_BASE_URL:-https://api.openai.com/v1}
+      VISION_MODEL: ${VISION_MODEL:-gpt-4o-mini}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - vision_uploads:/app/uploads
+      - visiondata:/data
+    restart: unless-stopped
+
+volumes:
+  vision_uploads:
+  visiondata:

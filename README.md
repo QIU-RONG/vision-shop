@@ -50,6 +50,22 @@ $env:HF_ENDPOINT="https://hf-mirror.com"
 # RESULT 9/9
 ```
 
+## Docker
+
+```bash
+docker build -t vision-shop:local .
+
+docker run -d --name vision-shop -p 8020:8020 \
+  --add-host host.docker.internal:host-gateway \
+  -e MALLX_BASE=http://host.docker.internal:8081 \
+  -v vision_uploads:/app/uploads -v visiondata:/data \
+  vision-shop:local
+```
+
+或 `docker compose up -d --build`。注意：容器里的 `MALLX_BASE` 要指向**宿主机可达的 MallX 地址**；
+Docker Desktop 用 `host.docker.internal` 即可；WSL 原生 Docker 访问 Windows 宿主的 8081
+可能被防火墙拦截，此时把 MallX 也放进同一 Compose 网络最稳。
+
 ## 配置
 
 | 变量 | 说明 |
